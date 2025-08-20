@@ -1,86 +1,22 @@
 /* src/App.css */
 
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Custom styles for the application form based on Tailwind classes */
-
 .app-container {
   min-height: 100vh;
-  background-color: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-}
-
-@media (min-width: 640px) {
-  .app-container {
-    padding: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .app-container {
-    padding: 2rem;
-  }
 }
 
 .form-card {
   width: 100%;
   max-width: 64rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background-color: var(--card-background);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
   border-radius: 1.5rem;
-  padding: 1rem;
-  border-width: 0px;
-}
-
-@media (min-width: 640px) {
-  .form-card {
-    padding: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .form-card {
-    padding: 2rem;
-  }
+  padding: 2rem;
 }
 
 .card-header {
@@ -91,19 +27,19 @@
 .card-title {
   font-size: 2.25rem;
   font-weight: 800;
-  color: #1e40af;
+  color: var(--text-primary);
 }
 
 .card-description {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--text-secondary);
   margin-top: 0.5rem;
 }
 
 .card-note {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -131,72 +67,41 @@
 }
 
 .form-label {
-  color: #4b5563;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .form-input {
+  background-color: transparent;
+  color: var(--text-primary);
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
-  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--input-border);
+  padding: 0.75rem;
+  transition: all 0.2s ease-in-out;
 }
 
 .form-input:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #3b82f6;
-  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--input-focus-border);
+  border-color: var(--input-focus-border);
 }
 
 .file-input {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-  color: #4b5563;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.file-input::-webkit-file-upload-button {
-  visibility: hidden;
-}
-
-.file-input::before {
-  content: 'Select files';
-  display: inline-block;
-  background: #e5e7eb;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  outline: none;
-  white-space: nowrap;
-  -webkit-user-select: none;
-  cursor: pointer;
-  font-weight: 500;
-  color: #4b5563;
-}
-
-.file-input:hover::before {
-  background: #d1d5db;
+  color: var(--text-secondary);
 }
 
 .uploaded-files-list {
   margin-top: 1rem;
   padding: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--input-border);
   border-radius: 0.5rem;
-  background-color: #f9fafb;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .uploaded-files-list h4 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .file-list-container {
@@ -210,143 +115,95 @@
   align-items: center;
   margin-bottom: 0.5rem;
   padding: 0.5rem;
-  background-color: #fff;
-  border: 1px solid #e5e7eb;
+  background-color: rgba(255, 255, 255, 0.1);
   border-radius: 0.25rem;
 }
 
-.file-thumbnail {
+.file-thumbnail,
+.file-icon {
   width: 40px;
   height: 40px;
   object-fit: contain;
   margin-right: 0.75rem;
   border-radius: 0.25rem;
-}
-
-.file-icon {
-  background-color: #e5e7eb;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236b7280'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpath fill='%23fff' d='M14 2v6h6z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 60%;
+  background-color: var(--separator-color);
 }
 
 .file-name {
   flex-grow: 1;
   font-size: 0.875rem;
-  color: #4b5563;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-secondary);
 }
 
 .remove-file-btn {
   background: none;
   border: none;
-  color: #ef4444;
-  font-size: 1rem;
+  color: var(--danger-color);
+  font-size: 1.25rem;
   cursor: pointer;
-  padding: 0 0.5rem;
-  margin-left: 0.5rem;
   transition: color 0.2s;
 }
 
 .remove-file-btn:hover {
-  color: #b91c1c;
+  color: var(--danger-color-hover);
 }
 
 .required-star {
-  color: #ef4444;
+  color: var(--danger-color);
 }
 
 .divider {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-  border-color: #e5e7eb;
+  margin: 1.5rem 0;
+  border-color: var(--separator-color);
 }
 
-.occupant-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-@media (min-width: 768px) {
-  .occupant-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.add-occupant-btn {
-  margin-top: 0.5rem;
+.add-occupant-btn,
+.submit-btn,
+.google-btn,
+.back-btn {
   width: 100%;
-  background-color: #3b82f6;
   color: white;
   font-weight: 700;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition-property: all;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease-in-out;
   border: none;
   cursor: pointer;
 }
 
-.add-occupant-btn:hover {
-  background-color: #2563eb;
+.add-occupant-btn,
+.submit-btn {
+  background-color: var(--primary-accent);
+  color: #0f172a; /* Dark text for contrast on bright button */
 }
 
-@media (min-width: 640px) {
-  .add-occupant-btn {
-    width: auto;
-  }
+.add-occupant-btn:hover,
+.submit-btn:hover {
+  background-color: var(--primary-accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
 }
 
 .requirements-card {
   padding: 1.5rem;
-  background-color: #f9fafb;
+  background-color: rgba(255, 255, 255, 0.05);
   margin-bottom: 2rem;
   border-radius: 0.75rem;
-  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 }
 
 .requirements-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
 .requirements-list {
-  list-style-type: disc;
-  list-style-position: inside;
-  padding-left: 0;
-  line-height: 1.5;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .submit-btn-container {
   display: flex;
   justify-content: center;
-}
-
-.submit-btn {
-  width: 100%;
-  background-color: #2563eb;
-  color: white;
-  font-weight: 700;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 1.125rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  transition-property: all;
-  border: none;
-  cursor: pointer;
-}
-
-.submit-btn:hover {
-  background-color: #1d4ed8;
 }
 
 @media (min-width: 640px) {
@@ -355,43 +212,32 @@
   }
 }
 
-/* New CSS for Dashboard and auth components */
-
 .auth-separator {
   text-align: center;
   margin: 1.5rem 0;
   position: relative;
+  color: var(--text-secondary);
 }
 
 .auth-separator::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
   right: 0;
-  border-top: 1px solid #d1d5db;
+  border-top: 1px solid var(--separator-color);
 }
 
 .auth-separator::after {
-  content: 'OR';
+  content: "OR";
   position: relative;
-  background: #f3f4f6;
+  background: var(--card-background);
   padding: 0 1rem;
-  color: #6b7280;
   font-size: 0.875rem;
 }
 
 .google-btn {
-  width: 100%;
   background-color: #4285f4;
-  color: white;
-  font-weight: 700;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
 }
 
 .google-btn:hover {
@@ -401,39 +247,40 @@
 .auth-switch-text {
   text-align: center;
   margin-top: 1.5rem;
-  font-size: 0.875rem;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .link-btn {
   background: none;
   border: none;
-  padding: 0;
-  color: #3b82f6;
+  color: var(--primary-accent);
   text-decoration: underline;
   cursor: pointer;
 }
-
 .link-btn:hover {
-  color: #2563eb;
+  color: var(--primary-accent-hover);
 }
 
 .logout-btn {
   background-color: transparent;
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
   font-weight: 700;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
-  font-size: 0.875rem;
-  margin-top: 1rem;
 }
 
 .logout-btn:hover {
-  background-color: #ef4444;
+  background-color: var(--danger-color);
   color: white;
+}
+
+/* === NEW & UPDATED DASHBOARD STYLES START HERE === */
+
+.dashboard-container {
+  max-width: 80rem; /* Allow dashboards to be wider */
 }
 
 .dashboard-header {
@@ -441,132 +288,176 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--separator-color);
   text-align: left;
 }
 
-.dashboard-header h1 {
-  margin: 0;
-}
-
-.dashboard-content {
-  padding-top: 1rem;
-}
-
-.loading-state {
+.loading-state,
+.success-message,
+.auth-error {
   text-align: center;
-  font-size: 1.5rem;
-  color: #6b7280;
+  font-size: 1.2rem;
   padding: 2rem 0;
 }
 
-.applications-list {
-  list-style: none;
-  padding: 0;
+.success-message {
+  color: #4ade80;
 }
 
-.application-item {
-  background-color: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+.auth-error {
+  color: var(--danger-color);
+}
+
+/* Landlord Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.application-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--separator-color);
+  border-radius: 1rem;
   padding: 1.5rem;
-  margin-bottom: 1rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
-.application-item:hover {
-  background-color: #f9fafb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+.application-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--primary-accent);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
-.application-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.app-title {
+.app-card-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
 }
 
-.app-date {
-  font-size: 0.875rem;
-  color: #6b7280;
+.app-card-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0 0 1.5rem;
 }
 
-.application-detail {
-  text-align: left;
-}
-
-.application-detail p {
-  margin: 0.5rem 0;
-  font-size: 0.95rem;
-  color: #4b5563;
-}
-
-.application-detail strong {
-  color: #1f2937;
-}
-
-.application-detail .section-title {
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1e40af;
-}
-
-.file-item-dashboard {
+.app-card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
-  border: 1px solid #e5e7eb;
-  padding: 0.75rem;
-  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.app-card-date {
+  color: var(--text-secondary);
+}
+
+.app-card-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f59e0b; /* Amber 500 for "Needs Review" */
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #f59e0b;
+  border-radius: 50%;
+}
+
+/* Tenant Dashboard Styles */
+.tenant-dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .tenant-dashboard-content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.status-card,
+.actions-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.status-icon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  color: #22c55e; /* Green 500 */
+}
+
+.status-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+}
+
+.status-description {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.actions-title {
+  font-size: 1.25rem;
+  font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
-.file-item-dashboard .file-name {
-  flex-grow: 1;
-  font-size: 1rem;
-  color: #4b5563;
+.actions-description {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.edit-btn {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .edit-btn {
+    width: auto;
+  }
+}
+
+/* Application Detail View Styles (unchanged) */
+.application-detail strong {
+  color: var(--text-primary);
+}
+
+.file-item-dashboard {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem;
 }
 
 .download-btn {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--primary-accent);
+  color: #0f172a;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   text-decoration: none;
-  font-size: 0.875rem;
   transition: all 0.2s;
 }
 
 .download-btn:hover {
-  background-color: #2563eb;
-}
-
-.button-group {
-  display: flex;
-  gap: 1rem;
+  background-color: var(--primary-accent-hover);
 }
 
 .back-btn {
-  background-color: #6b7280;
-  color: white;
-  font-weight: 700;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  background-color: var(--separator-color);
 }
 
 .back-btn:hover {
-  background-color: #4b5563;
+  background-color: #2d3748;
 }

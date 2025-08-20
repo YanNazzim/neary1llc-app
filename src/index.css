@@ -1,3 +1,21 @@
+/* src/index.css */
+
+:root {
+  --background-start: #0f172a; /* Slate 900 */
+  --background-end: #0c4a6e;   /* Sky 900 */
+  --background-mid: #1e3a8a;   /* Indigo 900 */
+  --card-background: rgba(17, 24, 39, 0.85); /* Gray 900 with opacity */
+  --text-primary: #e2e8f0;    /* Slate 200 */
+  --text-secondary: #94a3b8;  /* Slate 400 */
+  --primary-accent: #38bdf8;  /* Sky 400 */
+  --primary-accent-hover: #0ea5e9; /* Sky 500 */
+  --danger-color: #f43f5e;     /* Rose 500 */
+  --danger-color-hover: #e11d48;/* Rose 600 */
+  --input-border: #475569;    /* Slate 600 */
+  --input-focus-border: var(--primary-accent);
+  --separator-color: #475569;  /* Slate 600 */
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -5,9 +23,28 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(-45deg, var(--background-start), var(--background-mid), var(--background-end));
+  background-size: 400% 400%;
+  animation: gradientBG 25s ease infinite;
+  color: var(--text-primary);
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
+  background-color: var(--card-background);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
 }

@@ -8,21 +8,26 @@ import {
   onAuthStateChanged,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail
 } from "firebase/auth";
 import {
   getFirestore,
   collection,
   addDoc,
+  doc,
+  getDocs,
+  updateDoc,
   onSnapshot,
   query,
+  where,
   orderBy
 } from "firebase/firestore";
-import { 
-  getStorage, 
-  ref, 
-  uploadBytes, 
-  getDownloadURL 
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
 } from "firebase/storage";
 import { v4 as uuidv4 } from 'uuid';
 
@@ -130,6 +135,9 @@ const LoginScreen = ({ setView }) => {
               <button type="submit" className="submit-btn">Login</button>
             </div>
           </form>
+          <p className="auth-switch-text" style={{ marginTop: '1rem', marginBottom: 0 }}>
+            <button className="link-btn" onClick={() => setView('forgotPassword')}>Forgot Password?</button>
+          </p>
           <div className="auth-separator"></div>
           <div className="submit-btn-container">
             <button onClick={handleGoogleSignIn} className="google-btn">
@@ -149,14 +157,19 @@ const LoginScreen = ({ setView }) => {
 const SignupScreen = ({ setView }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (err) {
-      setError("Failed to create account. Password should be at least 6 characters.");
+      setError("Failed to create account. Password should be at least 6 characters and can include '@' and '#'.");
       console.error(err);
     }
   };
@@ -187,6 +200,14 @@ const SignupScreen = ({ setView }) => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <FormField
+                label="Confirm Password"
+                id="signup-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
               {error && <p className="auth-error">{error}</p>}
             </Section>
             <div className="submit-btn-container">
@@ -202,9 +223,62 @@ const SignupScreen = ({ setView }) => {
   );
 };
 
+// Forgot Password Component
+const ForgotPasswordScreen = ({ setView }) => {
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMessage("Password reset email sent! Check your inbox.");
+    } catch (err) {
+      setError("Failed to send password reset email. Please check the address.");
+      console.error(err);
+    }
+  };
+
+  return (
+    <div className="app-container">
+      <div className="form-card card">
+        <div className="card-header">
+          <h1 className="card-title">Reset Password</h1>
+          <p className="card-description">Enter your email to receive a reset link.</p>
+        </div>
+        <div className="card-content">
+          <form onSubmit={handlePasswordReset}>
+            <Section>
+              <FormField
+                label="Email"
+                id="reset-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {message && <p className="success-message">{message}</p>}
+              {error && <p className="auth-error">{error}</p>}
+            </Section>
+            <div className="submit-btn-container">
+              <button type="submit" className="submit-btn">Send Reset Link</button>
+            </div>
+          </form>
+          <p className="auth-switch-text">
+            Remembered your password? <button className="link-btn" onClick={() => setView('login')}>Login</button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main Application Form Component
-const ApplicationForm = ({ handleLogout }) => {
-  const [formData, setFormData] = useState({
+const ApplicationForm = ({ handleLogout, existingApplication, setView, setUserApplication }) => {
+  const [formData, setFormData] = useState(existingApplication || {
     dateOfApplication: '',
     desiredMoveInDate: '',
     applyingFor: '',
@@ -241,8 +315,10 @@ const ApplicationForm = ({ handleLogout }) => {
     weeklyIncome: '',
   });
 
-  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState(existingApplication?.uploadedFiles || []);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  const isEditMode = !!existingApplication;
 
   useEffect(() => {
     return () => {
@@ -284,6 +360,7 @@ const ApplicationForm = ({ handleLogout }) => {
       const isImage = file.type.startsWith('image/');
       return {
         file,
+        name: file.name,
         objectURL: isImage ? URL.createObjectURL(file) : null
       };
     });
@@ -297,102 +374,72 @@ const ApplicationForm = ({ handleLogout }) => {
     });
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Create a clean copy of the form data to modify
     const dataToSubmit = { ...formData };
 
-    // 2. Filter out any additional occupants that are completely empty
-    const filteredOccupants = dataToSubmit.additionalOccupants.filter(occupant => 
+    const filteredOccupants = dataToSubmit.additionalOccupants.filter(occupant =>
       occupant.name || occupant.relationship || occupant.dob
     );
     dataToSubmit.additionalOccupants = filteredOccupants;
 
-    // 3. Handle file uploads
     let uploadedFileMetadata = [];
     try {
       const fileUploadPromises = uploadedFiles.map(item => {
-        const file = item.file;
-        const fileExtension = file.name.split('.').pop();
-        // Use applicant's name for the folder, or a generic 'uploads' if name is blank
-        const applicantFolder = dataToSubmit.applicantFullName || 'uploads';
-        const storageRef = ref(storage, `applications/${applicantFolder}/${uuidv4()}.${fileExtension}`);
-        
-        return uploadBytes(storageRef, file).then(snapshot => 
-          getDownloadURL(snapshot.ref).then(url => ({
-            name: file.name,
-            url: url
-          }))
-        );
+        if (item.file) { // Only upload new files
+          const file = item.file;
+          const fileExtension = file.name.split('.').pop();
+          const applicantFolder = dataToSubmit.applicantFullName || 'uploads';
+          const storageRef = ref(storage, `applications/${applicantFolder}/${uuidv4()}.${fileExtension}`);
+
+          return uploadBytes(storageRef, file).then(snapshot =>
+            getDownloadURL(snapshot.ref).then(url => ({
+              name: file.name,
+              url: url
+            }))
+          );
+        }
+        return Promise.resolve(item); // Keep existing files
       });
 
       uploadedFileMetadata = await Promise.all(fileUploadPromises);
     } catch (error) {
       console.error('Failed to upload files:', error);
       setSuccessMessage("Error uploading files. Please try again.");
-      return; // Stop submission if file upload fails
+      return;
     }
 
-    // 4. Build the final application data object
     const applicationData = {
       ...dataToSubmit,
       uploadedFiles: uploadedFileMetadata,
-      createdAt: new Date()
+      createdAt: isEditMode ? existingApplication.createdAt : new Date(),
+      updatedAt: new Date(),
+      userId: auth.currentUser.uid
     };
-    
-    // 5. Remove any top-level empty string fields before saving
-    // Note: This does not remove fields that are 0 or false, only empty strings.
+
     for (const key in applicationData) {
       if (applicationData[key] === '') {
         delete applicationData[key];
       }
     }
 
-    // 6. Submit to Firestore
     try {
-      await addDoc(collection(db, "applications"), applicationData);
-      
-      setSuccessMessage("Application submitted successfully!");
-      // Reset form state after successful submission
-      setFormData({
-        dateOfApplication: '',
-        desiredMoveInDate: '',
-        applyingFor: '',
-        email: '',
-        phone: '',
-        applicantFullName: '',
-        applicantDob: '',
-        applicantSsn: '',
-        coResidentName: '',
-        coResidentDob: '',
-        coResidentSsn: '',
-        additionalOccupants: [{ name: '', relationship: '', dob: '' }],
-        presentAddress: '',
-        presentCity: '',
-        presentState: '',
-        presentZip: '',
-        presentLandlordName: '',
-        presentLandlordPhone: '',
-        presentMonthlyRent: '',
-        presentReasonForLeaving: '',
-        previousAddress: '',
-        previousCity: '',
-        previousState: '',
-        previousZip: '',
-        previousLandlordName: '',
-        previousLandlordPhone: '',
-        previousMonthlyRent: '',
-        previousReasonForLeaving: '',
-        companyName: '',
-        companyAddress: '',
-        companyPhone: '',
-        timeAtCompany: '',
-        jobRole: '',
-        weeklyIncome: '',
-      });
-      setUploadedFiles([]);
-      setTimeout(() => setSuccessMessage(null), 5000);
+      if (isEditMode) {
+        const appDocRef = doc(db, "applications", existingApplication.id);
+        await updateDoc(appDocRef, applicationData);
+        setSuccessMessage("Application updated successfully!");
+        setUserApplication({ id: existingApplication.id, ...applicationData });
+      } else {
+        const docRef = await addDoc(collection(db, "applications"), applicationData);
+        setSuccessMessage("Application submitted successfully!");
+        setUserApplication({ id: docRef.id, ...applicationData });
+      }
+
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setView('tenantDashboard');
+      }, 3000);
 
     } catch (error) {
       console.error('Failed to submit application:', error);
@@ -768,11 +815,11 @@ const handleSubmit = async (e) => {
                       {uploadedFiles.map((item, index) => (
                         <li key={index} className="file-item">
                           {item.objectURL ? (
-                            <img src={item.objectURL} alt={item.file.name} className="file-thumbnail" />
+                            <img src={item.objectURL} alt={item.name} className="file-thumbnail" />
                           ) : (
                             <div className="file-thumbnail file-icon"></div>
                           )}
-                          <span className="file-name">{item.file.name}</span>
+                          <span className="file-name">{item.name}</span>
                           <button
                             type="button"
                             onClick={() => handleRemoveFile(index)}
@@ -794,7 +841,7 @@ const handleSubmit = async (e) => {
                 type="submit"
                 className="submit-btn"
               >
-                Submit Application
+                {isEditMode ? 'Update Application' : 'Submit Application'}
               </button>
             </div>
           </form>
@@ -836,16 +883,13 @@ const Dashboard = ({ handleLogout }) => {
     return (
       <div className="app-container">
         <div className="form-card card">
-          <div className="dashboard-header">
-            <h1 className="card-title">Landlord Dashboard</h1>
-            <button onClick={handleLogout} className="logout-btn">Log out</button>
-          </div>
           <div className="loading-state">Loading applications...</div>
         </div>
       </div>
     );
   }
-
+  
+  // Detailed view of a single application
   if (selectedApplication) {
     return (
       <div className="app-container">
@@ -866,7 +910,7 @@ const Dashboard = ({ handleLogout }) => {
             <p><strong>Full Name:</strong> {selectedApplication.applicantFullName}</p>
             <p><strong>Date of Birth:</strong> {selectedApplication.applicantDob}</p>
             <p><strong>Social Security #:</strong> {selectedApplication.applicantSsn}</p>
-            
+
             <h3 className="section-title">Residential History</h3>
             <p><strong>Present Address:</strong> {selectedApplication.presentAddress}</p>
             <p><strong>Present Landlord Name:</strong> {selectedApplication.presentLandlordName}</p>
@@ -889,58 +933,142 @@ const Dashboard = ({ handleLogout }) => {
       </div>
     );
   }
-
+  
+  // Main dashboard view with all applications
   return (
     <div className="app-container">
-      <div className="form-card card">
+      <div className="form-card card dashboard-container">
         <div className="dashboard-header">
           <h1 className="card-title">Landlord Dashboard</h1>
           <button onClick={handleLogout} className="logout-btn">Log out</button>
         </div>
-        <div className="dashboard-content">
-          <ul className="applications-list">
-            {applications.length > 0 ? (
-              applications.map(app => (
-                <li key={app.id} className="application-item" onClick={() => handleOpenApplication(app)}>
-                  <div className="application-summary">
-                    <h2 className="app-title">{app.applicantFullName}</h2>
-                    <p className="app-date">
-                      {app.createdAt.toDate().toLocaleDateString()
-                    }</p>
+        <div className="dashboard-grid">
+          {applications.length > 0 ? (
+            applications.map(app => (
+              <div key={app.id} className="application-card" onClick={() => handleOpenApplication(app)}>
+                <div className="card-content">
+                  <h2 className="app-card-title">{app.applicantFullName}</h2>
+                  <p className="app-card-subtitle">Applying for: {app.applyingFor}</p>
+                  <div className="app-card-footer">
+                    <span className="app-card-date">
+                      {app.createdAt.toDate().toLocaleDateString()}
+                    </span>
+                    <span className="app-card-status">
+                      <span className="status-dot"></span>
+                      Needs Review
+                    </span>
                   </div>
-                </li>
-              ))
-            ) : (
-              <p>No applications have been submitted yet.</p>
-            )}
-          </ul>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p>No applications have been submitted yet.</p>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
+
+// Tenant Dashboard Component
+const TenantDashboard = ({ handleLogout, userApplication, setView, setExistingApplication }) => {
+  const handleEdit = () => {
+    setExistingApplication(userApplication);
+    setView('application');
+  };
+
+  if (!userApplication) {
+    return (
+      <div className="app-container">
+        <div className="form-card card">
+          <div className="loading-state">Loading application...</div>
+        </div>
+      </div>
+    );
+  }
+  
+  const getDisplayDate = () => {
+    if (!userApplication.createdAt) return 'N/A';
+    if (typeof userApplication.createdAt.toDate === 'function') {
+      return userApplication.createdAt.toDate().toLocaleDateString();
+    }
+    return new Date(userApplication.createdAt).toLocaleDateString();
+  };
+
+  return (
+    <div className="app-container">
+      <div className="form-card card tenant-dashboard">
+        <div className="dashboard-header">
+          <h1 className="card-title">My Application Portal</h1>
+          <button onClick={handleLogout} className="logout-btn">Log out</button>
+        </div>
+
+        <div className="tenant-dashboard-content">
+          <div className="status-card">
+              <div className="status-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+              </div>
+              <h2 className="status-title">Application Submitted</h2>
+              <p className="status-description">
+                  Your application for <strong>{userApplication.applyingFor || 'N/A'}</strong> submitted on <strong>{getDisplayDate()}</strong> is currently under review.
+              </p>
+          </div>
+
+          <div className="actions-card">
+              <h3 className="actions-title">Manage Your Application</h3>
+              <p className="actions-description">You can make changes to your application, upload additional documents, or correct information as needed.</p>
+              <button onClick={handleEdit} className="submit-btn edit-btn">
+                  Edit My Application
+              </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // Main App Component
 const App = () => {
   const [view, setView] = useState('login');
-  
-  // Replace with the specific landlord email
+  const [userApplication, setUserApplication] = useState(null);
+  const [existingApplication, setExistingApplication] = useState(null);
+
   const LANDLORD_EMAIL = "ygnh00@gmail.com";
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (authUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         if (authUser.email === LANDLORD_EMAIL) {
           setView('dashboard');
         } else {
-          setView('application');
+          // Avoid refetching if we just submitted and have the data
+          if (!userApplication) {
+            const q = query(collection(db, "applications"), where("userId", "==", authUser.uid));
+            const querySnapshot = await getDocs(q);
+            if (!querySnapshot.empty) {
+              const appData = querySnapshot.docs[0].data();
+              setUserApplication({ id: querySnapshot.docs[0].id, ...appData });
+              setView('tenantDashboard');
+            } else {
+              setView('application');
+            }
+          } else {
+            setView('tenantDashboard');
+          }
         }
       } else {
+        // Clear state on logout
         setView('login');
+        setUserApplication(null);
+        setExistingApplication(null);
       }
     });
     return unsubscribe;
-  }, [LANDLORD_EMAIL]);
+  }, [userApplication]); // Run only once on mount
 
   const handleLogout = async () => {
     try {
@@ -956,12 +1084,20 @@ const App = () => {
   if (view === 'signup') {
     return <SignupScreen setView={setView} />;
   }
+  if (view === 'forgotPassword') {
+    return <ForgotPasswordScreen setView={setView} />;
+  }
   if (view === 'application') {
-    return <ApplicationForm handleLogout={handleLogout} />;
+    return <ApplicationForm handleLogout={handleLogout} existingApplication={existingApplication} setView={setView} setUserApplication={setUserApplication} />;
   }
   if (view === 'dashboard') {
     return <Dashboard handleLogout={handleLogout} />;
   }
+  if (view === 'tenantDashboard') {
+    return <TenantDashboard handleLogout={handleLogout} userApplication={userApplication} setView={setView} setExistingApplication={setExistingApplication} />;
+  }
+  
+  return <div className="loading-state">Loading...</div>; // Fallback for initial render
 };
 
 export default App;
