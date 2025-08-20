@@ -130,7 +130,7 @@ const LoginScreen = ({ setView }) => {
               <button type="submit" className="submit-btn">Login</button>
             </div>
           </form>
-          <div className="auth-separator">OR</div>
+          <div className="auth-separator"></div>
           <div className="submit-btn-container">
             <button onClick={handleGoogleSignIn} className="google-btn">
               Sign in with Google
