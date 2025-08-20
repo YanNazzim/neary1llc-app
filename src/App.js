@@ -21,7 +21,8 @@ import {
   onSnapshot,
   query,
   where,
-  orderBy
+  orderBy,
+  deleteDoc
 } from "firebase/firestore";
 import {
   getStorage,
@@ -851,12 +852,24 @@ const ApplicationForm = ({ handleLogout, existingApplication, setView, setUserAp
   );
 };
 
+// Helper component for individual data points in the detail view
+const DetailItem = ({ label, value }) => (
+  <div className="detail-item">
+    <span className="detail-label">{label}</span>
+    <span className="detail-value">{value || 'N/A'}</span>
+  </div>
+);
+
 // Landlord Dashboard Component
 const Dashboard = ({ handleLogout }) => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmInput, setConfirmInput] = useState('');
 
+  // This useEffect sets up the real-time listener
   useEffect(() => {
     const q = query(collection(db, "applications"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -868,7 +881,7 @@ const Dashboard = ({ handleLogout }) => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => unsubscribe(); // Cleanup the listener on component unmount
   }, []);
 
   const handleOpenApplication = (application) => {
@@ -877,6 +890,41 @@ const Dashboard = ({ handleLogout }) => {
 
   const handleCloseApplication = () => {
     setSelectedApplication(null);
+  };
+
+  // New function for manual data synchronization
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setApplications([]); // This line clears the state before fetching
+    try {
+      const q = query(collection(db, "applications"), orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q); // One-time fetch from the database
+      const docs = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setApplications(docs);
+    } catch (error) {
+      console.error("Failed to sync applications:", error);
+    }
+    setTimeout(() => setIsSyncing(false), 1000); // Give user feedback
+  };
+
+  const handleDeleteApplication = async () => {
+    if (confirmInput.toLowerCase() === 'delete application') {
+      try {
+        const docRef = doc(db, "applications", selectedApplication.id);
+        await deleteDoc(docRef);
+        handleCloseApplication();
+        setConfirmInput('');
+        setShowDeleteModal(false);
+      } catch (error) {
+        console.error("Error deleting document: ", error);
+        alert("Failed to delete the application. Please try again.");
+      }
+    } else {
+      alert("You must type 'Delete Application' to confirm.");
+    }
   };
 
   if (loading) {
@@ -889,47 +937,108 @@ const Dashboard = ({ handleLogout }) => {
     );
   }
   
-  // Detailed view of a single application
   if (selectedApplication) {
     return (
       <div className="app-container">
-        <div className="form-card card">
+        <div className="form-card card dashboard-container">
           <div className="dashboard-header">
-            <h1 className="card-title">{selectedApplication.applicantFullName}'s Application</h1>
-            <div className="button-group">
-              <button onClick={handleCloseApplication} className="back-btn">Back to Dashboard</button>
+            <div>
+              <h1 className="card-title">{selectedApplication.applicantFullName}</h1>
+              <p className="card-description">Application Details</p>
+              <div className="button-group">
+                <button onClick={handleCloseApplication} className="back-btn">Back to Dashboard</button>
+                <button onClick={() => setShowDeleteModal(true)} className="logout-btn" style={{ border: '1px solid #f43f5e' }}>Delete Application</button>
+              </div>
+            </div>
+            <div>
               <button onClick={handleLogout} className="logout-btn">Log out</button>
             </div>
           </div>
-          <div className="application-detail">
-            <p><strong>Date Submitted:</strong> {selectedApplication.createdAt.toDate().toLocaleDateString()}</p>
-            <p><strong>Applying For:</strong> {selectedApplication.applyingFor}</p>
-            <p><strong>Email:</strong> {selectedApplication.email}</p>
-            <p><strong>Phone:</strong> {selectedApplication.phone}</p>
-            <h3 className="section-title">Personal Information</h3>
-            <p><strong>Full Name:</strong> {selectedApplication.applicantFullName}</p>
-            <p><strong>Date of Birth:</strong> {selectedApplication.applicantDob}</p>
-            <p><strong>Social Security #:</strong> {selectedApplication.applicantSsn}</p>
+          
+          <div className="application-detail-grid">
+            {/* Primary Applicant Section */}
+            <section className="detail-section">
+              <h2 className="detail-section-title">Primary Applicant</h2>
+              <DetailItem label="Full Name" value={selectedApplication.applicantFullName} />
+              <DetailItem label="Date of Birth" value={selectedApplication.applicantDob} />
+              <DetailItem label="SSN" value={selectedApplication.applicantSsn} />
+              <DetailItem label="Email" value={selectedApplication.email} />
+              <DetailItem label="Phone" value={selectedApplication.phone} />
+            </section>
 
-            <h3 className="section-title">Residential History</h3>
-            <p><strong>Present Address:</strong> {selectedApplication.presentAddress}</p>
-            <p><strong>Present Landlord Name:</strong> {selectedApplication.presentLandlordName}</p>
+            {/* Co-Resident Section */}
+            {selectedApplication.coResidentName && (
+              <section className="detail-section">
+                <h2 className="detail-section-title">Co-Resident</h2>
+                <DetailItem label="Full Name" value={selectedApplication.coResidentName} />
+                <DetailItem label="Date of Birth" value={selectedApplication.coResidentDob} />
+                <DetailItem label="SSN" value={selectedApplication.coResidentSsn} />
+              </section>
+            )}
 
-            <h3 className="section-title">Uploaded Files</h3>
-            <ul className="file-list-container">
-              {selectedApplication.uploadedFiles && selectedApplication.uploadedFiles.length > 0 ? (
-                selectedApplication.uploadedFiles.map((file, index) => (
-                  <li key={index} className="file-item-dashboard">
-                    <span className="file-name">{file.name}</span>
-                    <a href={file.url} target="_blank" rel="noopener noreferrer" download={file.name} className="download-btn">Download</a>
-                  </li>
-                ))
-              ) : (
-                <li>No files uploaded.</li>
-              )}
-            </ul>
+            {/* Residential History Section */}
+            <section className="detail-section">
+              <h2 className="detail-section-title">Residential History</h2>
+              <h3 className="detail-subsection-title">Current Address</h3>
+              <DetailItem label="Address" value={`${selectedApplication.presentAddress}, ${selectedApplication.presentCity}, ${selectedApplication.presentState} ${selectedApplication.presentZip}`} />
+              <DetailItem label="Landlord" value={selectedApplication.presentLandlordName} />
+              <DetailItem label="Landlord Phone" value={selectedApplication.presentLandlordPhone} />
+              <DetailItem label="Monthly Rent" value={`$${selectedApplication.presentMonthlyRent}`} />
+              <DetailItem label="Reason for Leaving" value={selectedApplication.presentReasonForLeaving} />
+            </section>
+            
+            {/* Employment Info Section */}
+            <section className="detail-section">
+              <h2 className="detail-section-title">Employment</h2>
+              <DetailItem label="Company" value={selectedApplication.companyName} />
+              <DetailItem label="Position" value={selectedApplication.jobRole} />
+              <DetailItem label="Time at Company" value={selectedApplication.timeAtCompany} />
+              <DetailItem label="Weekly Income" value={`$${selectedApplication.weeklyIncome}`} />
+            </section>
+
+            {/* Uploaded Files Section */}
+            <section className="detail-section detail-section-full">
+              <h2 className="detail-section-title">Uploaded Documents</h2>
+              <ul className="file-list-container">
+                {selectedApplication.uploadedFiles && selectedApplication.uploadedFiles.length > 0 ? (
+                  selectedApplication.uploadedFiles.map((file, index) => (
+                    <li key={index} className="file-item-dashboard">
+                      <span className="file-name">{file.name}</span>
+                      <a href={file.url} target="_blank" rel="noopener noreferrer" download={file.name} className="download-btn">Download</a>
+                    </li>
+                  ))
+                ) : (
+                  <li>No files were uploaded with this application.</li>
+                )}
+              </ul>
+            </section>
           </div>
         </div>
+        {showDeleteModal && (
+          <div className="app-container" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 10 }}>
+            <div className="form-card card" style={{ maxWidth: '40rem', padding: '2rem', textAlign: 'center' }}>
+              <h2 className="card-title" style={{ color: '#f43f5e' }}>Confirm Deletion</h2>
+              <p className="card-description">This action cannot be undone. To confirm, please type **Delete Application** below.</p>
+              <div className="form-field">
+                <input
+                  type="text"
+                  className="form-input"
+                  value={confirmInput}
+                  onChange={(e) => setConfirmInput(e.target.value)}
+                  placeholder="Delete Application"
+                />
+              </div>
+              <div className="button-group" style={{ marginTop: '1.5rem', justifyContent: 'center' }}>
+                <button onClick={handleDeleteApplication} className="submit-btn" disabled={confirmInput.toLowerCase() !== 'delete application'}>
+                  Confirm Delete
+                </button>
+                <button onClick={() => setShowDeleteModal(false)} className="back-btn" style={{ backgroundColor: '#475569' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -940,7 +1049,12 @@ const Dashboard = ({ handleLogout }) => {
       <div className="form-card card dashboard-container">
         <div className="dashboard-header">
           <h1 className="card-title">Landlord Dashboard</h1>
-          <button onClick={handleLogout} className="logout-btn">Log out</button>
+          <div className="button-group">
+            <button onClick={handleSync} className="sync-btn" disabled={isSyncing}>
+              {isSyncing ? 'Syncing...' : 'Sync Data'}
+            </button>
+            <button onClick={handleLogout} className="logout-btn">Log out</button>
+          </div>
         </div>
         <div className="dashboard-grid">
           {applications.length > 0 ? (
