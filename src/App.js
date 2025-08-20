@@ -109,7 +109,6 @@ const LoginScreen = ({ setView }) => {
       <div className="form-card card">
         <div className="card-header">
           <h1 className="card-title">Neary 1, LLC Renters Portal</h1>
-          <p className="card-description">Login</p>
         </div>
         <div className="card-content">
           <form onSubmit={handleLogin}>
